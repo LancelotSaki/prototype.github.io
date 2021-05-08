@@ -1,0 +1,932 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8">
+  <title></title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="">
+  <meta property="og:type" content="">
+  <meta property="og:url" content="">
+  <meta property="og:image" content="">
+  <meta name="theme-color" content="#fafafa">
+  <link rel="manifest" href="../../../../site.webmanifest">
+
+  <link rel="apple-touch-icon" href="../../../../icon.png">
+  <!-- Place favicon.ico in the root directory -->
+
+  <link rel="stylesheet" href="../../../../css/normalize.css">
+  <link rel="stylesheet" href="../../../../css/main.css">
+  <link rel="stylesheet" href="../../../../js/layui/ext/soulTable.css">
+  <link rel="stylesheet" href="../../../../js/layui/css/layui.css">
+
+  <style type="text/css">
+    .layui-table-page {
+      text-align: right;
+    }
+
+    form, section, .layui-table-tool {
+      background: white;
+    }
+
+    blockquote {
+      margin: 0;
+    }
+
+    .lightFont {
+      text-shadow: 0 1px rgba(122, 174, 195, 0.15),
+      0 1px rgba(122, 174, 195, 0.30),
+      0 1px rgba(122, 174, 195, 0.45),
+      0 1px rgba(122, 174, 195, 0.65),
+      0 1px rgba(122, 174, 195, 0.75),
+      2px 4px 5px rgba(122, 174, 195, 1);
+    }
+
+    .headerTool {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .headerTool > li {
+      margin-right: 15px;
+    }
+
+    .headerTool > li a {
+      display: block;
+    }
+  </style>
+  <script src="../../../../js/common/jquery-3.5.1.min.js"></script>
+  <script src="../../../../js/layui/layui.js"></script>
+  <script src="../../../../js/common/underscore-min.js"></script>
+</head>
+
+<body>
+
+<!-- Add your site or application content here -->
+<section>
+  <table id="resourceListTable" lay-filter="resourceListTable"></table>
+</section>
+<script src="../../../../js/vendor/modernizr-3.11.2.min.js"></script>
+<script type="text/html" id="resourceDetailTpl">
+  {{#  if(d.IPINFO){ }}
+  <a href="javascript:void(0)" style="color: #0080cc;">lyn_test_资源入库</a>
+  {{#  } else if (d.IPINFO){ }}
+  <a href="javascript:void(0)" style="color: #0080cc;">lyn_test_资源入库</a>
+  {{#  } else { }}
+  <a href="javascript:void(0)" style="color: #0080cc;">lyn_test_资源入库</a>
+  {{#  } }}
+</script>
+<script type="text/html" id="tableConfig">
+  <ul class="headerTool">
+    <li>
+      <a lay-event="monitor"><i class="layui-icon layui-icon-chart"></i>监控信息</a>
+    </li>
+    <li>
+      <a lay-event="workOrder"><i class="layui-icon layui-icon-tabs"></i>工单信息查询</a>
+    </li>
+    <li>
+      <a lay-event="baseLine"><i class="layui-icon layui-icon-console"></i>基线版本回退</a>
+    </li>
+    <li>
+      <a lay-event="add"><i class="layui-icon layui-icon-add-1"></i>新增</a>
+    </li>
+    <li>
+      <a lay-event="modify"><i class="layui-icon layui-icon-edit"></i>修改</a>
+    </li>
+    <li>
+      <a lay-event="import"><i class="layui-icon layui-icon-templeate-1"></i>导入</a>
+    </li>
+    <li>
+      <a lay-event="export"><i class="layui-icon layui-icon-export"></i>导出</a>
+    </li>
+    <li>
+      <a lay-event="field"><i class="layui-icon layui-icon-set"></i>字段设置</a>
+    </li>
+    <li>
+      <a lay-event="tag"><i class="layui-icon layui-icon-rate-half"></i>打标签</a>
+    </li>
+    <li>
+      <a lay-event="batchUpdate"><i class="layui-icon layui-icon-release"></i>批量修改</a>
+    </li>
+    <li>
+      <a lay-event="batchDelete"><i class="layui-icon layui-icon-delete"></i>批量删除</a>
+    </li>
+    <li>
+      <a lay-event="refresh"><i class="layui-icon layui-icon-refresh-1"></i>刷新</a>
+    </li>
+  </ul>
+</script>
+<script type="text/html" id="barDemo">
+  <a lay-event="detail" title="详情" style="color: #0080cc;"><i class="layui-icon layui-icon-form"></i>详情</a>
+  <a lay-event="modify" title="修改" style="color: #0080cc;"><i class="layui-icon layui-icon-edit"></i>修改</a>
+  <a lay-event="del" title="删除" style="color: #0080cc;"><i class="layui-icon layui-icon-delete"></i>删除</a>
+</script>
+</body>
+<script>
+  var form, layer, soulTable;
+  var resourceListTable;
+  // 初始化内容vc
+  $(document).ready(function () {
+    // 自定义模块，这里只需要开放soulTable即可
+    layui.config({
+      base: '../../../../js/layui/ext/',   // 第三方模块所在目录
+    }).extend({
+      soulTable: 'soulTable',
+      tableChild: 'tableChild',
+      tableMerge: 'tableMerge',
+      tableFilter: 'tableFilter',
+      excel: 'excel',
+    });
+    var pageHeight = $(document).height() - $('#resourceListTable').offset().top;
+    var defaultLimit = 5;
+    if (pageHeight >= 350) {
+      defaultLimit = 5 + Math.floor((pageHeight - 350) / 40)
+    }
+    layui.use(['layer', 'form', 'table', 'soulTable'], function () {
+      form = layui.form;
+      layer = layui.layer;
+      soulTable = layui.soulTable;
+      var table = layui.table;
+
+      var header = initHeader();
+      var cols = [{type: 'checkbox', title: '##', fixed: 'left'}];
+      for (var i = 0; i < header.length; i++) {
+        var col = {};
+        col.field = header[i].FIELDNAME;
+        col.title = header[i].CHNAME;
+        col.width = header[i].WIDTH;
+        col.sort = true;
+        col.filter = true;
+        if (i == 0) {
+          col.templet = "#resourceDetailTpl";
+          col.fixed = "left";
+        }
+        if (header[i].DISPLAYSTATE == 1) {
+          cols.push(col)
+        }
+      }
+      cols.push({title: '操作', toolbar: '#barDemo', fixed: 'right'});
+      //var url = "http://10.239.86.204/cmdb-res-warehouse-service/v1/res_manage/listData";
+      resourceListTable = table.render({
+        elem: '#resourceListTable'
+        , height: $(document).height() - $('#resourceListTable').offset().top - 20
+        //   , url: url
+        , data: getJSONData()
+        , toolbar: "#tableConfig"
+        , defaultToolbar: ['filter', 'print']
+        , title: '虚拟机资源信息列表'
+        , cols: [cols]
+        , request: {
+          pageName: 'currentPage' //页码的参数名称，默认：page
+          , limitName: 'pageLimit' //每页数据量的参数名，默认：limit
+        }
+        , response: {
+          statusCode: true //重新规定成功的状态码为 200，table 组件默认为 0
+          , countName: 'total' //规定数据总数的字段名称，默认：count
+        }
+        , parseData: function (res) { //将原始数据解析成 table 组件所规定的数据
+          return {
+            "code": res.success, //解析接口状态
+            "data": res.result.list, //解析数据列表
+            "total": res.result.totalCount, //解析数据长度
+          };
+        }
+        , where: { //设定异步数据接口的额外参数，任意设
+          opCode: null,
+          tableName: "T_CMDB",
+          kindCode: 40,
+          sceneKind: "MANAGE",
+          name: "",
+          urlSearch: [{"code": ""}],
+          filterSearch: ""
+        }
+        , page: {
+          // 自定义分页按钮主题
+          theme: '#1E9FFF'
+          , layout: ['count', 'prev', 'page', 'next', 'limit', 'refresh', 'skip']
+          // 默认展示10条记录
+          , limit: defaultLimit
+          , limits: [10, 20, 50, 100, 500, 1000]
+        }
+        , soulSort: false // 坑爹的soulTable现在默认的排序有BUG，先别用，自己写
+        , filter: {// 是否启用调整列记忆缓存，soulTable独有
+          clearFilter: true
+          //用于控制表头下拉显示，可以控制顺序、显示, 依次是：表格列、筛选数据、筛选条件、编辑筛选条件、导出excel
+          , items: ['column', 'condition', 'editCondition']
+          , cache: false
+          , bottom: false // 隐藏底部搜索栏(大多情况下都不要这个)
+        }
+        , overflow: {// 内容超出限制,启用tips展示(官方的不太好用)，soulTable独有
+          type: 'tips' // tips和title两种方式
+          , hoverTime: 200 // 悬停时间，单位ms, 悬停 hoverTime 后才会显示，默认为 0
+          , color: 'white' // 字体颜色
+          , bgColor: '#2D2D2D' // 背景色
+        }
+        , autoColumnWidth: {// 是否先判断当前页的列的最大长度再配置列宽
+          init: true
+        }
+        , contextmenu: {// soulTable独有
+          // 表头右键菜单配置
+          header: false,
+          // 表格内容右键菜单配置
+          body: [
+            {
+              name: '复制',
+              icon: 'layui-icon layui-icon-template',
+              click: function (obj) {
+                soulTable.copy(obj.text)
+                layer.msg('复制成功！')
+              }
+            },
+            {
+              name: '行-背景颜色标记',
+              icon: 'layui-icon layui-icon-theme',
+              click: function (obj) {
+                if (obj.trElem && obj.trElem.css("background-color") == 'rgb(204, 232, 207)') {
+                  obj.trElem.css('background', '')
+                  return;
+                }
+                obj.trElem.css('background', '#CCE8CF')
+              }
+            },
+            {
+              name: '字体标记',
+              icon: 'layui-icon layui-icon-theme',
+              click: function (obj) {
+                if (obj.elem.hasClass("lightFont")) {
+                  obj.elem.removeClass("lightFont");
+                  return;
+                }
+                obj.elem.addClass('lightFont');
+              }
+            },
+            {
+              name: '刷新表格',
+              icon: 'layui-icon layui-icon-refresh-1',
+              click: function (obj) {
+                resourceListTable.reload({
+                  where: {
+                    opCode: null,
+                    tableName: "T_CMDB",
+                    kindCode: 40,
+                    sceneKind: "MANAGE",
+                    name: "",
+                    urlSearch: [{"code": ""}],
+                    filterSearch: ""
+                  }
+                  , page: {
+                    curr: 1 //重新从第 1 页开始
+                    , limit: 10
+                  }
+                });
+              }
+            }
+          ],
+          // 合计栏右键菜单配置
+          total: false
+        }
+        , done: function (res, curr, count) {
+          // 设置表格标题颜色
+          $('table th').css({'background-color': '#E9F6FB', 'color': '#0180CC', 'font-weight': 'bold'})
+          soulTable.render(this);
+        }
+      });
+
+      //监听表头工具栏事件
+      table.on('toolbar(resourceListTable)', function (obj) {
+        var checkStatus = table.checkStatus(obj.config.id);
+        console.log(obj);
+        switch (obj.event) {
+          case 'batchUpdate':
+            if (checkStatus && checkStatus.data.length == 0) {
+              layer.msg("请至少选中一条记录!", {icon: 5, anim: 6});
+            } else {
+              console.log(checkStatus);
+            }
+            break;
+        }
+      });
+
+
+      //监听行工具事件
+      table.on('tool(resourceListTable)', function (obj) {
+        var data = obj.data;
+        var tableId = data.TABLEID;
+        console.log(obj);
+        if (obj.event === 'detail') {
+          console.log("详情")
+        } else if (obj.event === 'modify') {
+          console.log("修改")
+        } else if (obj.event === 'del') {
+          console.log("删除")
+        }
+      });
+
+      $('#export').on('click', function () {
+        console.log("自定义导出.")
+      })
+    });
+  });
+
+  function getJSONData() {
+    var data = [{
+      "BUSINESS_RESP": "黄蕾",
+      "GATEWAY": "10.242.24.14/29",
+      "IN_CLUSTER": "HGT-Cluster-9F-C0405-D0405",
+      "TABLENAME": "T_CMDB",
+      "IP": "10.242.24.9;",
+      "BUSINESS_MODULAR": "服开环境",
+      "BUSINESS": "资金稽核",
+      "DEPARTMENT": "信息技术部",
+      "VLAN": "vlan1132",
+      "NAME": "ZJJH_10.242.24.9",
+      "MACHINE_NAME": "ZJJH_10.242.24.9",
+      "STATUS": "运行",
+      "CREATE_DATE": "",
+      "OS_CONTACTS": "郑翔",
+      "TABLEID": "05a17654d3714de1b95f2cfe0684083a",
+      "HOST_COMPUTER_IP": "10.239.27.83",
+      "SHARE_STORE_SIZE": "250",
+      "MEMORY_SIZE": "32",
+      "OPERA_SYS": "RedHat as 6.10",
+      "ONLINE_TIME": "2019-12-02",
+      "LOCAL_STORE_SIZE": "50",
+      "VCPU_NUM": "4",
+      "ROW_NUM_": 1
+    }, {
+      "BUSINESS_RESP": "方长钟",
+      "GATEWAY": "10.239.80.92/27",
+      "IN_CLUSTER": "HGT-X9-A06-W1",
+      "VIR_TYPE": "vmware虚拟化",
+      "TABLENAME": "T_CMDB",
+      "IP": "10.239.80.65;",
+      "BUSINESS_MODULAR": "DAMP集群-UDM",
+      "BUSINESS": "大数据对内业务应用平台-数据管理分析平台DMAP",
+      "NAME": "JXNC-BD-HGT-X9-A06-W1-DMAP-001-WEB_10.239.80.65",
+      "NOTES": "特殊IP 10.239.80.33,大数据主机",
+      "MACHINE_NAME": "JXNC-BD-HGT-X9-A06-W1-DMAP-001-WEB",
+      "STATUS": "运行",
+      "CREATE_DATE": "",
+      "OS_CONTACTS": "郑翔",
+      "TABLEID": "fd284fdd7d474c23ae1cdb45caaf4696",
+      "DEPTNAME": "大数据架构室",
+      "OPERA_SYS": "SUSE Linux Enterprise Server 12",
+      "ONLINE_TIME": "",
+      "IP_ADDRESS": "10.239.80.33;",
+      "ROW_NUM_": 4
+    }, {
+      "BUSINESS_RESP": "方长钟",
+      "GATEWAY": "10.239.80.92/27",
+      "IN_CLUSTER": "HGT-X9-B06-W3",
+      "VIR_TYPE": "vmware虚拟化",
+      "TABLENAME": "T_CMDB",
+      "IP": "10.239.80.74;",
+      "BUSINESS_MODULAR": "DAMP集群-UDM",
+      "BUSINESS": "大数据对内业务应用平台-数据管理分析平台DMAP",
+      "NAME": "JXNC-BD-HGT-X9-B06-W3-DMAP-010-PC_10.239.80.74",
+      "NOTES": "特殊IP 10.239.80.42,大数据主机",
+      "MACHINE_NAME": "JXNC-BD-HGT-X9-B06-W3-DMAP-010-PC",
+      "STATUS": "运行",
+      "CREATE_DATE": "",
+      "OS_CONTACTS": "郑翔",
+      "TABLEID": "bcfb69da108e4c00a216921f728962ca",
+      "DEPTNAME": "大数据架构室",
+      "OPERA_SYS": "SUSE Linux Enterprise Server 12",
+      "ONLINE_TIME": "",
+      "IP_ADDRESS": "10.239.80.42;",
+      "ROW_NUM_": 5
+    }, {
+      "BUSINESS_RESP": "方长钟",
+      "GATEWAY": "10.239.80.92/27",
+      "IN_CLUSTER": "HGT-X9-A06-W3",
+      "VIR_TYPE": "vmware虚拟化",
+      "TABLENAME": "T_CMDB",
+      "IP": "10.239.80.73;",
+      "BUSINESS_MODULAR": "DAMP集群-UDM",
+      "BUSINESS": "大数据对内业务应用平台-数据管理分析平台DMAP",
+      "NAME": "JXNC-BD-HGT-X9-A06-W3-DMAP-009-PC_10.239.80.73",
+      "NOTES": "特殊IP 10.239.80.41,大数据主机",
+      "MACHINE_NAME": "JXNC-BD-HGT-X9-A06-W3-DMAP-009-PC",
+      "STATUS": "运行",
+      "CREATE_DATE": "",
+      "OS_CONTACTS": "郑翔",
+      "TABLEID": "2578fad725d248019a81b9b226eb7229",
+      "DEPTNAME": "大数据架构室",
+      "OPERA_SYS": "SUSE Linux Enterprise Server 12",
+      "ONLINE_TIME": "",
+      "IP_ADDRESS": "10.239.80.41;",
+      "ROW_NUM_": 6
+    }, {
+      "BUSINESS_RESP": "方长钟",
+      "GATEWAY": "10.239.80.92/27",
+      "IN_CLUSTER": "HGT-X9-B07-W2",
+      "VIR_TYPE": "vmware虚拟化",
+      "TABLENAME": "T_CMDB",
+      "IP": "10.239.80.72;",
+      "BUSINESS_MODULAR": "DAMP集群-UDM",
+      "BUSINESS": "大数据对内业务应用平台-数据管理分析平台DMAP",
+      "NAME": "JXNC-BD-HGT-X9-B07-W2-DMAP-008-Campaign_10.239.80.72",
+      "NOTES": "特殊IP 10.239.80.40,大数据主机",
+      "MACHINE_NAME": "JXNC-BD-HGT-X9-B07-W2-DMAP-008-Campaign",
+      "STATUS": "运行",
+      "CREATE_DATE": "",
+      "OS_CONTACTS": "郑翔",
+      "TABLEID": "b06aef9506ab4811842ec323aa4072c0",
+      "DEPTNAME": "大数据架构室",
+      "OPERA_SYS": "SUSE Linux Enterprise Server 12",
+      "ONLINE_TIME": "",
+      "IP_ADDRESS": "10.239.80.40;",
+      "ROW_NUM_": 7
+    }, {
+      "BUSINESS_RESP": "方长钟",
+      "GATEWAY": "10.239.80.92/27",
+      "IN_CLUSTER": "HGT-X9-A07-W2",
+      "VIR_TYPE": "vmware虚拟化",
+      "TABLENAME": "T_CMDB",
+      "IP": "10.239.80.71;",
+      "BUSINESS_MODULAR": "DAMP集群-UDM",
+      "BUSINESS": "大数据对内业务应用平台-数据管理分析平台DMAP",
+      "NAME": "JXNC-BD-HGT-X9-A07-W2-DMAP-007-Campaign_10.239.80.71",
+      "NOTES": "特殊IP 10.239.80.39,大数据主机",
+      "MACHINE_NAME": "JXNC-BD-HGT-X9-A07-W2-DMAP-007-Campaign",
+      "STATUS": "运行",
+      "CREATE_DATE": "",
+      "OS_CONTACTS": "郑翔",
+      "TABLEID": "d60e9c145eea4ea1b3e83a938558fd27",
+      "DEPTNAME": "大数据架构室",
+      "OPERA_SYS": "SUSE Linux Enterprise Server 12",
+      "ONLINE_TIME": "",
+      "IP_ADDRESS": "10.239.80.39;",
+      "ROW_NUM_": 8
+    }];
+    return data;
+  }
+
+  window.onresize = _.debounce(function () {
+    if (window.performance.navigation.type == 0 || window.performance.navigation.type == 1) {
+      return;
+    }
+    console.log("重载页面");
+    console.log(window.innerWidth, window.innerHeight);
+    var baseHeight = 0;
+    if (window.innerHeight >= 450 && window.innerHeight <= 540) {
+      resourceListTable.reload({
+        where: {
+          opCode: null,
+          tableName: "T_CMDB",
+          kindCode: 40,
+          sceneKind: "MANAGE",
+          name: "",
+          urlSearch: [{"code": ""}],
+          filterSearch: ""
+        }
+        , page: {
+          curr: 1 //重新从第 1 页开始
+          , limit: 10
+        }
+      });
+    }
+  }, 1500);
+
+  function initHeader() {
+    var header = [{
+      "FIELDID": 240015330,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "NAME",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053058,
+      "SEQ": 1,
+      "CHNAME": "配置项名称"
+    }, {
+      "FIELDID": 240015359,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "ONLINE_TIME",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 4,
+      "ID": 240053059,
+      "SEQ": 2,
+      "CHNAME": "上线时间"
+    }, {
+      "FIELDID": 240015360,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "IN_CLUSTER",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053060,
+      "SEQ": 3,
+      "CHNAME": "所属集群"
+    }, {
+      "FIELDID": 240015361,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "STATUS",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053061,
+      "SEQ": 4,
+      "CHNAME": "状态"
+    }, {
+      "FIELDID": 240015362,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "MACHINE_NAME",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053062,
+      "SEQ": 5,
+      "CHNAME": "虚机名"
+    }, {
+      "FIELDID": 240015363,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "IP",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053063,
+      "SEQ": 6,
+      "CHNAME": "IP地址"
+    }, {
+      "FIELDID": 240050664,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "IP_ADDRESS",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053064,
+      "SEQ": 7,
+      "CHNAME": "其他IP"
+    }, {
+      "FIELDID": 240015373,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "BUSINESS",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053065,
+      "SEQ": 8,
+      "CHNAME": "当前业务"
+    }, {
+      "FIELDID": 240015374,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "BUSINESS_MODULAR",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053066,
+      "SEQ": 9,
+      "CHNAME": "业务模块"
+    }, {
+      "FIELDID": 240015375,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "BUSINESS_RESP",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053067,
+      "SEQ": 10,
+      "CHNAME": "业务责任人"
+    }, {
+      "FIELDID": 240053057,
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "FIELDNAME": "DEPTNAME",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "ID": 240053068,
+      "SEQ": 11,
+      "COMPANY": "GLOBAL",
+      "CHNAME": "科室名"
+    }, {
+      "FIELDID": 240015365,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "OPERA_SYS",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053069,
+      "SEQ": 12,
+      "CHNAME": "操作系统"
+    }, {
+      "FIELDID": 240052484,
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "FIELDNAME": "OS_CONTACTS",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "ID": 240053070,
+      "SEQ": 13,
+      "COMPANY": "GLOBAL",
+      "CHNAME": "操作系统责任人"
+    }, {
+      "FIELDID": 240015345,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "GATEWAY",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053071,
+      "SEQ": 14,
+      "CHNAME": "掩码"
+    }, {
+      "FIELDID": 240052166,
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "FIELDNAME": "IPV6",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "ID": 240053072,
+      "SEQ": 15,
+      "COMPANY": "GLOBAL",
+      "CHNAME": "IPV6"
+    }, {
+      "FIELDID": 240015366,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "VCPU_NUM",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053073,
+      "SEQ": 16,
+      "CHNAME": "VCPU数量"
+    }, {
+      "FIELDID": 240015367,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "MEMORY_SIZE",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053074,
+      "SEQ": 17,
+      "CHNAME": "内存(GB)"
+    }, {
+      "FIELDID": 240015368,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "LOCAL_STORE_SIZE",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053075,
+      "SEQ": 18,
+      "CHNAME": "本地存储(GB)"
+    }, {
+      "FIELDID": 240015369,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "SHARE_STORE_SIZE",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053076,
+      "SEQ": 19,
+      "CHNAME": "共享存储(GB)"
+    }, {
+      "FIELDID": 240015400,
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "FIELDNAME": "VLAN",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "ID": 240053077,
+      "SEQ": 20,
+      "COMPANY": "GLOBAL",
+      "CHNAME": "VLAN"
+    }, {
+      "FIELDID": 240015371,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "HOST_COMPUTER_IP",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053078,
+      "SEQ": 21,
+      "CHNAME": "宿主机IP"
+    }, {
+      "FIELDID": 240015364,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "MAINTENANCE_FAC",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053079,
+      "SEQ": 22,
+      "CHNAME": "维护厂商"
+    }, {
+      "FIELDID": 240015372,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "DEPARTMENT",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053080,
+      "SEQ": 23,
+      "CHNAME": "所属部门"
+    }, {
+      "FIELDID": 240015333,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "CREATE_DATE",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 13,
+      "ID": 240053081,
+      "SEQ": 24,
+      "CHNAME": "记录时间"
+    }, {
+      "FIELDID": 240015327,
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 0,
+      "DATATYPE": 3,
+      "FIELDNAME": "TABLEID",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "ID": 240053082,
+      "SEQ": 25,
+      "COMPANY": "GLOBAL",
+      "CHNAME": "表ID"
+    }, {
+      "FIELDID": 240015328,
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 0,
+      "DATATYPE": 3,
+      "FIELDNAME": "TABLENAME",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "ID": 240053083,
+      "SEQ": 26,
+      "COMPANY": "GLOBAL",
+      "CHNAME": "表名"
+    }, {
+      "FIELDID": 240022592,
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "FIELDNAME": "CPU_PHY_NUM",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "ID": 240053084,
+      "SEQ": 27,
+      "COMPANY": "GLOBAL",
+      "CHNAME": "物理CPU"
+    }, {
+      "FIELDID": 240022591,
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "FIELDNAME": "CPU_TYPE",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "ID": 240053085,
+      "SEQ": 28,
+      "COMPANY": "GLOBAL",
+      "CHNAME": "CPU类型"
+    }, {
+      "FIELDID": 240022593,
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "FIELDNAME": "CPU_LOGIC_NUM",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "ID": 240053086,
+      "SEQ": 29,
+      "COMPANY": "GLOBAL",
+      "CHNAME": "逻辑CPU"
+    }, {
+      "FIELDID": 240023236,
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "FIELDNAME": "VIR_TYPE",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "ID": 240053087,
+      "SEQ": 30,
+      "COMPANY": "GLOBAL",
+      "CHNAME": "虚机类型"
+    }, {
+      "FIELDID": 240021581,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "FUNC_NUM",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053088,
+      "SEQ": 31,
+      "CHNAME": "工单号"
+    }, {
+      "FIELDID": 240015401,
+      "SELECTLISTID": 0,
+      "FIELDNAME": "NOTES",
+      "WIDTH": 100,
+      "UISCENEID": 100313034,
+      "LOOKUPLISTID": 0,
+      "COMPANY": "GLOBAL",
+      "VALUEINPUTTYPE": 1,
+      "DISPLAYSTATE": 1,
+      "DATATYPE": 3,
+      "ID": 240053089,
+      "SEQ": 32,
+      "CHNAME": "备注"
+    }];
+    return header;
+  }
+</script>
+</html>

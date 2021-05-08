@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>默认布局</title>
+</head>
+<style type="text/css">
+  html,body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  ul {
+    margin: 0;
+    padding: 0;
+  }
+  ul > li {
+    list-style: none;
+  }
+
+  article {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  /*头部高度固定*/
+  header {
+    background: #b3d4fc;
+    height: 60px;
+  }
+
+  /*中间高度根据去除头尾后动态获取*/
+  main {
+    flex: 1;
+    display: flex;
+    background-color: rgb(2,138,201);
+  }
+  /*尾部高度固定*/
+  footer {
+    background: #b3d4fc;
+    height: 60px;
+  }
+
+  aside {
+    display: flex;
+    background-color: antiquewhite;
+    flex:0 0 200px;
+  }
+  /*宽高动态获取*/
+  section {
+     display: flex;
+     background-color: cadetblue;
+     flex:1;
+   }
+</style>
+<body>
+<article>
+  <header>头</header>
+  <main>
+    <aside>左边</aside>
+    <section>中间</section>
+  </main>
+  <footer>尾</footer>
+</article>
+</body>
+</html>
